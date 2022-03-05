@@ -5,7 +5,7 @@ class Window:
     def __init__(self, config: dict) -> None:
         # load values from display
         self._title = config.get('title', "Game")
-        self.frame_cap = config.get('frame_cap', 60)
+        self._frame_cap = config.get('frame_cap', 60)
         
         # init pygame module
         pygame.init()
@@ -25,7 +25,7 @@ class Window:
     
     @property
     def frame_cap(self) -> int:
-        return self.frame_cap
+        return self._frame_cap
     
     @frame_cap.setter
     def frame_cap(self, value) -> None:
@@ -33,6 +33,8 @@ class Window:
             raise TypeError('frame_cap value must be an int')
         if value <= 0:
             raise ValueError('frame_cap must be a value of 0 or higher')
+        
+        self._frame_cap = value
 
     @property
     def resolution(self) -> list:
@@ -43,4 +45,4 @@ class Window:
 
     def update(self) -> None:
         pygame.display.update()
-        self._clock.tick(self.frame_cap)
+        self._clock.tick(self._frame_cap)
