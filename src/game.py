@@ -8,7 +8,7 @@ from physics import PhysicsEngine
 
 class Game:
     def __init__(self, abs_path: Path) -> None:
-        with open(Path(abs_path, '..', 'assets', 'config', 'default.json'), 'r') as file:
+        with open(Path(abs_path, '..', 'config', 'default.json'), 'r') as file:
             self._game_config = json.load(file)
         
         self._window = Window(self._game_config['window'])
