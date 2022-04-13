@@ -10,7 +10,7 @@ logging.basicConfig(
 )
 
 
-class Logging:
+class Console:
     _logger = logging.getLogger('rich')
 
     @classmethod
