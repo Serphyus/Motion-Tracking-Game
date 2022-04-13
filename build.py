@@ -1,13 +1,10 @@
 import os
+import shutil
 import subprocess
-from rich.console import Console
 from pathlib import Path
-from shutil import rmtree
 from tempfile import TemporaryDirectory
 
-
-# create a console for logging events
-console = Console(log_time_format='[%H:%M:%S.%f]')
+from src.console import Console
 
 
 def exec_cmd(command: str) -> subprocess.CompletedProcess:
@@ -38,7 +35,7 @@ def check_dependencies() -> None:
     # file at the end of any environment path
     for dependency in dependencies:
         if not any(Path(env, dependency).is_file() for env in paths):
-            console.log('[bold red]unable to locate dependency: %s' % dependency)
+            Console.error_msg('unable to locate dependency: %s' % dependency)
             exit()
 
 
@@ -58,12 +55,12 @@ def compile_dll(
         f'g++ -shared {object_path} -o {output_path} -lstrmiids -lole32 -loleaut32'
     ]
 
-    console.log('compiling %s -> %s' % (source_path.name, output_path.name))
+    Console.debug_msg('compiling %s -> %s' % (source_path.name, output_path.name))
     for com in commands:
         process = exec_cmd(com)
         
         if process.stderr != b'':
-            console.log('[bold red]unable to compile %s' % source_path.name)
+            Console.error_msg('unable to compile %s' % source_path.name)
             exit()
 
 
@@ -77,13 +74,13 @@ def compile_src(
     # to avoid the extra 10-20 seconds it will take to unpack itself
     # when containing the large modules we will use
 
-    console.log('compiling %s -> %s.exe' % (src_path.name, src_path.stem))
+    Console.debug_msg('compiling %s -> %s.exe' % (src_path.name, src_path.stem))
 
     command = 'pyinstaller "%s" --clean --noconsole --workpath "%s" --specpath "%s" --distpath "%s"'
     process = exec_cmd(command % (src_path, work_path, work_path, dist_path))
 
     if process.returncode != 0:
-        console.log('[bold red]unable to compile %s' % src_path.name)
+        Console.error_msg('unable to compile %s' % src_path.name)
         exit()
 
 
@@ -112,56 +109,73 @@ def create_shortcut(
     exec_cmd('cscript %s' % script_path)
 
 
+def copy_files(src_path: Path, dst_path: Path, relative: Path) -> None:
+    try:
+        Console.debug_msg('copying game files %s -> %s' % (src_path.relative_to(relative), dst_path.relative_to(relative)))
+        if src_path.is_dir():
+            shutil.copytree(src_path, dst_path)
+        elif src_path.is_file():
+            shutil.copy(src_path, dst_path)
+        else:
+            Console.error_msg('unable to locate %s' % src_path)
+            exit()
+    except OSError:
+        Console.error_msg('unable to copy files')
+        exit()
+
+
 def compile_game(abs_path: Path):
-    with console.status("[bold green]Compiling game source...") as status:
-        # checks that all dependencies are installed
-        #status.stop
-        
-        console.log(f"checking game dependencies", )
-        check_dependencies()
+    # with Console._handler.status('[green]Compiling game source...'):
+    # checks that all dependencies are installed
+    Console.debug_msg(f'checking game dependencies')
+    check_dependencies()
 
-        # set build path for containing the compiled game
-        build_path = Path(abs_path, 'build')
-        
-        # remove old build folder and create new
-        if build_path.is_dir():
-            rmtree(build_path)
-        build_path.mkdir()
-        
-        # create temporary directory path for storing build files
-        tmp_dir = TemporaryDirectory()
-        tmp_path = Path(tmp_dir.name)
+    # set build path for containing the compiled game
+    build_path = Path(abs_path, 'build')
+    
+    # remove old build folder and create new
+    if build_path.is_dir():
+        shutil.rmtree(build_path)
+    build_path.mkdir()
+    
+    # create temporary directory path for storing build files
+    tmp_dir = TemporaryDirectory()
+    tmp_path = Path(tmp_dir.name)
 
-        # compile the CaptureLib.cpp to a shared dll library
-        compile_dll(
-            source_path=Path(abs_path, 'src', 'capture', 'CaptureLib.cpp'),
-            output_path=Path(build_path, 'CaptureLib.dll'),
-            work_path=tmp_path
-        )
+    # compile the CaptureLib.cpp to a shared dll library
+    compile_dll(
+        source_path=Path(abs_path, 'src', 'capture', 'CaptureLib.cpp'),
+        output_path=Path(build_path, 'CaptureLib.dll'),
+        work_path=tmp_path
+    )
 
-        # compile the main.py to main.exe
-        compile_src(
-            src_path=Path(abs_path, 'src', 'game', 'main.py'),
-            dist_path=build_path,
-            work_path=tmp_path
-        )
+    # compile the main.py to main.exe
+    compile_src(
+        src_path=Path(abs_path, 'src', 'main.py'),
+        dist_path=build_path,
+        work_path=tmp_path
+    )
 
-        # rename the output folder of the
-        # main.py from main to to bin
-        os.rename(
-            Path(build_path, 'main'),
-            Path(build_path, 'bin')
-        )
+    # rename the output folder of the
+    # main.py from main to to bin
+    os.rename(
+        Path(build_path, 'main'),
+        Path(build_path, 'bin')
+    )
 
-        # create windows shortcut
-        console.log('creating shortcut for main.exe executable')
-        create_shortcut(
-            bin_path=Path(build_path, 'bin', 'main.exe'),
-            link_path=Path(build_path, 'main.lnk'),
-            work_path=tmp_path
-        )
+    # copy all necessary game files to build folder
+    copy_files(Path(abs_path, 'config'), Path(build_path, 'config'), abs_path)
+    copy_files(Path(abs_path, 'assets'), Path(build_path, 'assets'), abs_path)
 
-        console.log('finished building game -> ./%s' % build_path.name)
+    # create windows shortcut
+    Console.debug_msg('creating shortcut for main.exe executable')
+    create_shortcut(
+        bin_path=Path(build_path, 'bin', 'main.exe'),
+        link_path=Path(build_path, 'main.lnk'),
+        work_path=tmp_path
+    )
+
+    Console.debug_msg('finished building game -> ./%s' % build_path.name)
 
 
 if __name__ == '__main__':
