@@ -124,7 +124,7 @@ def copy_files(src_path: Path, dst_path: Path, relative: Path) -> None:
         exit()
 
 
-def compile_game(abs_path: Path):
+def compile_game(abs_path: Path) -> None:
     # with Console._handler.status('[green]Compiling game source...'):
     # checks that all dependencies are installed
     Console.debug_msg(f'checking game dependencies')
