@@ -34,26 +34,43 @@ cv2.LINE_AA
 class MotionTracker:
     def __init__(self,
             camera: Camera,
+            accuracy: int = 1,
             show_landmarks: bool = True,
             landmarks_color: tuple = (255, 255, 255),
         ) -> None:
+        
+        # create a threading lock used for making the motion
+        # tracker thread safe when reading/writing to memory
+        self._lock = threading.Lock()
+        
         self._camera = camera
         
         self._last_frame = None
         self._landmarks = None
-        self._show_landmarks = show_landmarks
+        self._accuracy = 1
+        self._show_landmarks = False
         self._landmarks_color = landmarks_color
+
+        # use the property setters for the constructor arguments
+        self.accuracy = accuracy
+        self.show_landmarks = show_landmarks
 
         width, height = camera.resolution
         self._width = width
         self._height = height
 
-        self._mp_pose = mp.solutions.pose.Pose(
+        # create a mediapipe solution for tracking human poses
+        self._mp_pose = self._create_pose_solution()
+
+
+    def _create_pose_solution(self) -> mp.python.solution_base.SolutionBase:
+        solution = mp.solutions.pose.Pose(
+            model_complexity=self._accuracy,
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5
         )
 
-        self._lock = threading.Lock()
+        return solution
 
 
     @property
@@ -69,12 +86,30 @@ class MotionTracker:
 
 
     @property
+    def accuracy(self) -> int:
+        return self._accuracy
+    
+
+    @accuracy.setter
+    def accuracy(self, value: int) -> None:
+        if not value in range(3):
+            raise ValueError('value must be an int value from 0 to 2')
+        
+        with self._lock:
+            self._accuracy = value
+            
+            # if a pose solutino is already created recreate it
+            if hasattr(self, '_mp_pose'):
+                self._mp_pose = self._create_pose_solution()
+
+
+    @property
     def show_landmarks(self) -> bool:
         return self._show_landmarks
     
 
     @show_landmarks.setter
-    def show_landmarks(self, value: bool) -> bool:
+    def show_landmarks(self, value: bool) -> None:
         if not isinstance(value, bool):
             raise TypeError('show_landmarks must be a bool')
         self._show_landmarks = value
@@ -119,7 +154,12 @@ class MotionTracker:
 
 
     def update(self) -> None:
-        self._last_frame = self._camera.read()
+        # read and flip a new frame from the camera
+        self._last_frame = cv2.flip(self._camera.read(), 1)
+
+        # process the frame for landmarks
         new_landmarks = self._process_frame()
+        
+        # update the internal landmarks while thread safe
         with self._lock:
             self._landmarks = new_landmarks
