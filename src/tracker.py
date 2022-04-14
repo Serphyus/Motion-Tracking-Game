@@ -155,7 +155,7 @@ class MotionTracker:
 
     def update(self) -> None:
         # read and flip a new frame from the camera
-        self._last_frame = cv2.flip(self._camera.read(), 1)
+        self._last_frame = self._camera.read()
 
         # process the frame for landmarks
         new_landmarks = self._process_frame()

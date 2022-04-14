@@ -56,4 +56,4 @@ class Camera:
             Console.warning_msg('unable to read from capture device')
             return
 
-        return frame
+        return cv2.flip(frame, 1)
