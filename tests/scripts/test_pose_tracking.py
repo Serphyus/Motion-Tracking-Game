@@ -4,15 +4,11 @@ from tracker import MotionTracker
 
 
 with Camera(1) as camera:
-    tracker = MotionTracker(camera)
+    tracker = MotionTracker(camera, 1, True)
     
-    print(tracker.landmarks)
-
-    tracker.accuracy = 2
-    tracker.accuracy = 1
-
-    tracker.show_landmarks = False
-    tracker.show_landmarks = True
+    assert tracker.landmarks is None
+    assert tracker.accuracy == 1
+    assert tracker.show_landmarks
 
     while True:
         tracker.update()
