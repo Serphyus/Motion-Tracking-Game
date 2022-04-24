@@ -1,5 +1,5 @@
 import threading
-from typing import Union
+from typing import Union, Tuple
 
 import cv2
 import numpy as np
@@ -30,12 +30,12 @@ connections = (
     (LEFT_HIP, RIGHT_HIP),
 )
 
-cv2.LINE_AA
+
 class MotionTracker:
     def __init__(self,
             camera: Camera,
             accuracy: int = 1,
-            show_landmarks: bool = True,
+            show_landmarks: bool = False,
             landmarks_color: tuple = (255, 255, 255),
         ) -> None:
         
@@ -115,6 +115,13 @@ class MotionTracker:
         self._show_landmarks = value
 
 
+    def _convert_landmarks(self, x: int, y: int) -> Tuple[int, int]:
+        x = round(x * self._width)
+        y = round(y * self._height)
+
+        return x, y
+    
+
     def _process_frame(self) -> dict:
         pose_landmarks = {
             LEFT_SHOULDER:  None,
@@ -134,13 +141,13 @@ class MotionTracker:
 
             for landmark in pose_landmarks.keys():
                 point = results.pose_landmarks.landmark[landmark]
+                
                 if 0 <= point.x <= 1 and 0 <= point.y <= 1:
-                    x = round(point.x * self._width)
-                    y = round(point.y * self._height)
-                    pose_landmarks[landmark] = (x, y)
+                    landmark_pos = self._convert_landmarks(point.x, point.y)
+                    pose_landmarks[landmark] = landmark_pos
                 
                     if self._show_landmarks:
-                        cv2.circle(self._last_frame, pose_landmarks[landmark], 5, self._landmarks_color, -1, cv2.LINE_AA)
+                        cv2.circle(self._last_frame, landmark_pos, 5, self._landmarks_color, -1, cv2.LINE_AA)
 
         if self._show_landmarks:
             for p1, p2 in connections:
