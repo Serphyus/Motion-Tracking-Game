@@ -93,13 +93,13 @@ class MotionTracker:
     @accuracy.setter
     def accuracy(self, value: int) -> None:
         if not value in range(3):
-            raise ValueError('value must be an int value from 0 to 2')
+            raise ValueError("value must be an int value from 0 to 2")
         
         with self._lock:
             self._accuracy = value
             
             # if a pose solutino is already created recreate it
-            if hasattr(self, '_mp_pose'):
+            if hasattr(self, "_mp_pose"):
                 self._mp_pose = self._create_pose_solution()
 
 
@@ -111,7 +111,7 @@ class MotionTracker:
     @show_landmarks.setter
     def show_landmarks(self, value: bool) -> None:
         if not isinstance(value, bool):
-            raise TypeError('show_landmarks must be a bool')
+            raise TypeError("show_landmarks must be a bool")
         self._show_landmarks = value
 
 

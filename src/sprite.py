@@ -6,11 +6,14 @@ class Sprite:
         self._surface = surface
         self._rect = rect
 
+
     def get_surface(self) -> pygame.Surface:
         return self._surface
 
+
     def get_rect(self) -> pygame.Surface:
         return self._rect
+
 
     def render(self, dest_surface: pygame.Surface) -> None:
         dest_surface.blit(self._surface, self._rect)

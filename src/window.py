@@ -4,8 +4,8 @@ import pygame
 class Window:
     def __init__(self, config: dict) -> None:
         # load values from display
-        self._title = config.get('title', "Game")
-        self._frame_cap = config.get('frame_cap', 60)
+        self._title = config.get("title", "Game")
+        self._frame_cap = config.get("frame_cap", 60)
         
         # init pygame module
         pygame.init()
@@ -30,9 +30,9 @@ class Window:
     @frame_cap.setter
     def frame_cap(self, value) -> None:
         if not isinstance(value, int):
-            raise TypeError('frame_cap value must be an int')
+            raise TypeError("frame_cap value must be an int")
         if value <= 0:
-            raise ValueError('frame_cap must be a value of 0 or higher')
+            raise ValueError("frame_cap must be a value of 0 or higher")
         
         self._frame_cap = value
 
