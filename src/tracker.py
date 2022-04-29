@@ -45,7 +45,9 @@ class MotionTracker:
         
         self._camera = camera
         
-        self._last_frame = None
+        self._running = False
+        self._current_frame = None
+        self._last_processed = None
         self._landmarks = None
         self._accuracy = 1
         self._show_landmarks = False
@@ -76,7 +78,7 @@ class MotionTracker:
     @property
     def frame(self) -> Union[np.ndarray, None]:
         with self._lock:
-            return self._last_frame
+            return self._current_frame
 
 
     @property
@@ -122,7 +124,7 @@ class MotionTracker:
         return x, y
     
 
-    def _process_frame(self) -> dict:
+    def _process_frame(self, frame: np.ndarray) -> dict:
         pose_landmarks = {
             LEFT_SHOULDER:  None,
             LEFT_ELBOW:     None,
@@ -134,10 +136,10 @@ class MotionTracker:
             RIGHT_HIP:      None,
         }
 
-        results = self._mp_pose.process(self._last_frame)
+        results = self._mp_pose.process(frame)
 
         if results.pose_landmarks is not None:
-            h, w = self._last_frame.shape[:2]
+            h, w = frame.shape[:2]
 
             for landmark in pose_landmarks.keys():
                 point = results.pose_landmarks.landmark[landmark]
@@ -147,7 +149,7 @@ class MotionTracker:
                     pose_landmarks[landmark] = landmark_pos
                 
                     if self._show_landmarks:
-                        cv2.circle(self._last_frame, landmark_pos, 5, self._landmarks_color, -1, cv2.LINE_AA)
+                        cv2.circle(frame, landmark_pos, 5, self._landmarks_color, -1, cv2.LINE_AA)
 
         if self._show_landmarks:
             for p1, p2 in connections:
@@ -155,18 +157,39 @@ class MotionTracker:
                 point2 = pose_landmarks[p2]
 
                 if point1 is not None and point2 is not None:
-                    cv2.line(self._last_frame, point1, point2, self._landmarks_color, 2, cv2.LINE_AA)
+                    cv2.line(frame, point1, point2, self._landmarks_color, 2, cv2.LINE_AA)
 
-        return pose_landmarks
+        return frame, pose_landmarks
 
 
     def update(self) -> None:
         # read and flip a new frame from the camera
-        self._last_frame = self._camera.read()
+        new_frame = self._camera.read()
 
-        # process the frame for landmarks
-        new_landmarks = self._process_frame()
-        
-        # update the internal landmarks while thread safe
+        # process the frame to detect pose landmarks
+        processed_frame, new_landmarks = self._process_frame(new_frame)
+
+        # update the internal landmarks and frame while using a thread lock
         with self._lock:
+            self._current_frame = processed_frame
             self._landmarks = new_landmarks
+    
+
+    def _update_thread(self) -> None:
+        while self._running:
+            self.update()
+
+
+    def start_thread(self) -> None:
+        self._running = True
+        
+        thread = threading.Thread(
+            target=self._update_thread,
+            daemon=True
+        )
+
+        thread.start()
+    
+    
+    def stop_thread(self) -> None:
+        self._running = False

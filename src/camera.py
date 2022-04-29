@@ -18,14 +18,6 @@ class Camera:
         atexit.register(self._close_capture)
 
 
-    def __enter__(self):
-        return self
-
-
-    def __exit__(self, *args):
-        self.close()
-
-
     def _close_capture(self) -> None:
         Console.debug_msg("closing video capture")
         self._cap.release()
