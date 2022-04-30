@@ -1,3 +1,4 @@
+import logging
 import threading
 from typing import Union, Tuple
 
@@ -5,7 +6,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 
-from camera import Camera
+from .camera import Camera
 
 
 LEFT_SHOULDER   = 11
@@ -99,10 +100,7 @@ class MotionTracker:
         
         with self._lock:
             self._accuracy = value
-            
-            # if a pose solutino is already created recreate it
-            if hasattr(self, "_mp_pose"):
-                self._mp_pose = self._create_pose_solution()
+            self._mp_pose = self._create_pose_solution()
 
 
     @property
@@ -151,13 +149,13 @@ class MotionTracker:
                     if self._show_landmarks:
                         cv2.circle(frame, landmark_pos, 5, self._landmarks_color, -1, cv2.LINE_AA)
 
-        if self._show_landmarks:
-            for p1, p2 in connections:
-                point1 = pose_landmarks[p1]
-                point2 = pose_landmarks[p2]
+            if self._show_landmarks:
+                for p1, p2 in connections:
+                    point1 = pose_landmarks[p1]
+                    point2 = pose_landmarks[p2]
 
-                if point1 is not None and point2 is not None:
-                    cv2.line(frame, point1, point2, self._landmarks_color, 2, cv2.LINE_AA)
+                    if point1 is not None and point2 is not None:
+                        cv2.line(frame, point1, point2, self._landmarks_color, 2, cv2.LINE_AA)
 
         return frame, pose_landmarks
 
@@ -166,13 +164,14 @@ class MotionTracker:
         # read and flip a new frame from the camera
         new_frame = self._camera.read()
 
-        # process the frame to detect pose landmarks
-        processed_frame, new_landmarks = self._process_frame(new_frame)
+        if new_frame is not None:
+            # process the frame to detect pose landmarks
+            processed_frame, new_landmarks = self._process_frame(new_frame)
 
-        # update the internal landmarks and frame while using a thread lock
-        with self._lock:
-            self._current_frame = processed_frame
-            self._landmarks = new_landmarks
+            # update the internal landmarks and frame while using a thread lock
+            with self._lock:
+                self._current_frame = processed_frame
+                self._landmarks = new_landmarks
     
 
     def _update_thread(self) -> None:
@@ -188,8 +187,10 @@ class MotionTracker:
             daemon=True
         )
 
+        logging.debug("starting daemon motion tracker thread")
         thread.start()
     
     
     def stop_thread(self) -> None:
+        logging.debug("stopping daemon motion tracker thread")
         self._running = False

@@ -1,15 +1,14 @@
 import atexit
-from typing import Tuple
+import logging
+from typing import Union, Tuple
 
 import cv2
 import numpy as np
 
-from console import Console
-
 
 class Camera:
     def __init__(self, device: int) -> None:
-        Console.debug_msg("connecting to capture device id: %s" % device)
+        logging.debug("connecting to capture device id: %s" % device)
         self._cap = cv2.VideoCapture(device, cv2.CAP_DSHOW)
 
         if not self._cap.isOpened():
@@ -19,7 +18,7 @@ class Camera:
 
 
     def _close_capture(self) -> None:
-        Console.debug_msg("closing video capture")
+        logging.debug("releasing video capture device")
         self._cap.release()
 
 
@@ -38,14 +37,14 @@ class Camera:
         return (w, h)
 
     
-    def read(self) -> np.ndarray:
+    def read(self) -> Union[np.ndarray, None]:
         if not self._cap.isOpened():
             raise RuntimeError("can\"t read from a closed capture device")
         
         ret, frame = self._cap.read()
 
         if not ret:
-            Console.warning_msg("unable to read from capture device")
+            logging.warning_msg("unable to read from capture device")
             return
 
         return cv2.flip(frame, 1)

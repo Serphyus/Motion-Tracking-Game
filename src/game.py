@@ -1,6 +1,8 @@
 import json
-import pygame
+import logging
 from pathlib import Path
+
+import pygame
 
 from window import Window
 
@@ -18,6 +20,7 @@ class Game:
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    logging.debug("exiting game main loop")
                     running = False
             
             self._window.update()
