@@ -1,9 +1,7 @@
 {
     "window": {
         "title": "Motion Tracking Space Invador",
-        "frame_cap": 60
-    },
-    "physics": {
-        "defult_gravity": 1
+        "frame_cap": 60,
+        "resolution": [1280, 720]
     }
 }
