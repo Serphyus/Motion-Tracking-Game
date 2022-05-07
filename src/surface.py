@@ -77,7 +77,7 @@ class Surface:
         Returns:
             `pygame.Surface` : The surface of the current frame
         """
-        if not self._animated:
+        if self._animated:
             return self._frames[0]
 
         self._counter += 1
