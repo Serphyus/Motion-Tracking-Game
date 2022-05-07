@@ -9,12 +9,17 @@ class Window:
         
         # init pygame module
         pygame.init()
-        
-        # default window size to monitor size
-        self._resolution = pygame.display.get_desktop_sizes()[0]
 
-        # create pygame display surface
-        self._display = pygame.display.set_mode(self._resolution, pygame.FULLSCREEN)
+        # use render_target from config
+        self._resolution = config.get("resolution", [1280, 720])
+        
+        # create scaled pygame window in fullscreen. this way we can use one
+        # resolution for the game and have it automatically scale up whenever
+        # the pygame display gets updated.
+        self._display = pygame.display.set_mode(self._resolution, pygame.FULLSCREEN | pygame.SCALED)
+
+        # convert to improve performance
+        self._display.convert_alpha()
 
         # create clock to limit game framerate
         self._clock = pygame.time.Clock()
