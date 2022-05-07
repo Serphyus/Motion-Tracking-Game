@@ -1,3 +1,4 @@
+import sys
 import atexit
 import logging
 from typing import Union, Tuple
@@ -9,7 +10,11 @@ import numpy as np
 class Camera:
     def __init__(self, device: int) -> None:
         logging.debug("connecting to capture device id: %s" % device)
-        self._cap = cv2.VideoCapture(device, cv2.CAP_DSHOW)
+        
+        if sys.platform == "win32":
+            self._cap = cv2.VideoCapture(device, cv2.CAP_DSHOW)
+        else:
+            self._cap = cv2.VideoCapture(device)
 
         if not self._cap.isOpened():
             raise RuntimeError("unable to connect to capture device %i" % device)
