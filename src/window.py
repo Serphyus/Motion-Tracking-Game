@@ -19,13 +19,16 @@ class Window:
         # create clock to limit game framerate
         self._clock = pygame.time.Clock()
 
+
     @property
     def title(self) -> str:
         return self._title
     
+    
     @property
     def frame_cap(self) -> int:
         return self._frame_cap
+    
     
     @frame_cap.setter
     def frame_cap(self, value) -> None:
@@ -36,12 +39,19 @@ class Window:
         
         self._frame_cap = value
 
+
     @property
     def resolution(self) -> list:
         return self._resolution
 
+
+    def get_surface(self) -> pygame.Surface:
+        return self._display
+
+
     def get_fps(self) -> int:
         return self._clock.get_fps()
+
 
     def update(self) -> None:
         pygame.display.update()
