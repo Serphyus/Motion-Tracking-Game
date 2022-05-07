@@ -52,7 +52,6 @@ class Assets:
 
     @classmethod
     def _load_surface(cls, data: bytes, meta: dict = None) -> Sequence[Surface]: 
-        # test without convert to monitor performance gain
         surface = pygame.image.load(BytesIO(data)).convert_alpha()
 
         frame_count = meta.get("frames", 1)
@@ -62,18 +61,17 @@ class Assets:
         
         frames: Sequence[Surface] = []
 
-        frame_w, frame_h = meta.get("frame_res", surface.get_size())
+        w, h = meta.get("frame_res", surface.get_size())
         surface_width = surface.get_size()[0]
         
         for i in range(1, frame_count):
             new_surface = surface.copy()
-            start_x = (frame_w*i) % surface_width
-            start_y = int((frame_w*i) / surface_width)
+            x = (w*i) % surface_width
+            y = int((w*i) / surface_width)
             
-            new_surface = pygame.Surface((frame_w, frame_h))
-            new_surface.blit(surface, (0, 0), (start_x, start_y, start_x+frame_w, start_y+frame_h))
+            new_surface = pygame.Surface((w, h))
+            new_surface.blit(surface, (0, 0), (x, y, x+w, y+h))
             
-            # NOTE Convertion optimize
             new_surface.convert_alpha()
             frames.append(new_surface)
 
@@ -85,11 +83,13 @@ class Assets:
         if not prefix_path.is_dir():
             raise ValueError("unable to locate directory: %s" % prefix_path)
 
+        # set abs_path for root of folder
         cls._abs_path = prefix_path
         
         # read all files inside prefix_path
         cls._read_all_files(cls._abs_path)
 
+        # convert all files with image format extensions to pygame surfaces
         for path, data in cls._assets.items():
             if path.suffix[1:] in img_formats:
                 logging.debug(f"loading image {path}")
