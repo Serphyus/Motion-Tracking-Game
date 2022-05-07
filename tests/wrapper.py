@@ -1,8 +1,15 @@
 import os
 import subprocess
+import logging
 from pathlib import Path
-from rich.console import Console
 from typing import Sequence
+
+
+logging.basicConfig(
+    level="NOTSET",
+    format="%(asctime)s | %(levelname)-8s | %(message)s",
+    datefmt="[%H:%M:%S]",
+)
 
 
 def map_files(prefix: str) -> list:
@@ -14,19 +21,19 @@ def map_files(prefix: str) -> list:
         elif curr_path.is_file():
             paths.append(curr_path)
         else:
-            raise OSError('unable to identify path')
+            raise OSError("unable to identify path")
     return paths
 
 
 def menu(title: str, options: Sequence[Path]) -> Sequence[Path]:
-    print(f'\n%s\n%s\n' % (title, ('-'*len(title))))
+    print(f"\n%s\n%s\n" % (title, ("-"*len(title))))
 
-    for index, path in enumerate(options + ['Run all tests']):
-        print(' %i) %s' % (index+1, path))
+    for index, path in enumerate(options + ["Run all tests"]):
+        print(" %i) %s" % (index+1, path))
 
     choice = -1
     while True:
-        user_input = input('\nchoice: ')
+        user_input = input("\nchoice: ")
         
         if user_input.isdigit():
             choice = int(user_input)
@@ -35,15 +42,15 @@ def menu(title: str, options: Sequence[Path]) -> Sequence[Path]:
             elif choice == len(options)+1:
                 return options
         
-        print('\x1b[2A\x1b[0J', end='')
+        print("\x1b[2A\x1b[0J", end="")
 
 
 def run_test(script_path: Path, cwd: Path) -> subprocess.CompletedProcess:
     process_env = os.environ.copy()
-    process_env['PYTHONPATH'] = str(cwd)
+    process_env["PYTHONPATH"] = str(cwd)
     
     process = subprocess.run(
-        'python %s %s' % (script_path, cwd),
+        "python %s %s" % (script_path, cwd),
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -54,44 +61,37 @@ def run_test(script_path: Path, cwd: Path) -> subprocess.CompletedProcess:
     return process
 
 
-def main(abs_path: Path):
-    console = Console(log_time_format='[%H:%M:%S.%f]')
+def clear_screen() -> None:
+    print("\x1b[H\x1b[2J\x1b[3J", end="")
 
-    source_path = Path(abs_path.parent, 'src')
+
+def main(abs_path: Path):
+    source_path = Path(abs_path.parent, "src")
 
     test_scripts = []
-    for path in map_files(Path(abs_path, 'scripts')):
+    for path in map_files(Path(abs_path, "scripts")):
         test_scripts.append(path.relative_to(abs_path))
 
     looped = True
     while looped:
         try:
-            console.clear()
-            chosen_scripts = menu('Testing Scripts', test_scripts)
-            console.clear()
+            clear_screen()
+            chosen_scripts = menu("Testing Scripts", test_scripts)
             
-            no_errors = True
             for script in chosen_scripts:
-                with console.status('[bold green]Running test scripts...') as status:
-                    console.log('Running Test -> %s' % script.name)
-                    process = run_test(Path(abs_path, script), source_path)
+                logging.debug("Running Test -> %s" % script.name)
+                process = run_test(Path(abs_path, script), source_path)
 
-                    if process.returncode != 0 or process.stderr != b'':
-                        no_errors = False
-                        status.stop()
-                        print(process.stderr.decode())
-                        break
+                if process.returncode != 0 or process.stderr != b"":
+                    print(process.stderr.decode())
+                    logging.error("errors occurred when running %s" % script.name)
+                    break
             
-            if no_errors:
-                console.log('All tests were successful')
-            else:
-                console.log('[bold red]Errors occured when running tests')
-
-            input('\n[press enter to return]')
+            input("\n[press enter to return]")
         
         except KeyboardInterrupt:
             looped = False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(Path(__file__).resolve().parent)
