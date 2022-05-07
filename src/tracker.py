@@ -6,29 +6,29 @@ import cv2
 import numpy as np
 import mediapipe as mp
 
-from .camera import Camera
+from camera import Camera
 
 
 LEFT_SHOULDER   = 11
 LEFT_ELBOW      = 13
 LEFT_WRIST      = 15
-LEFT_HIP        = 23
+# LEFT_HIP        = 23
 
 RIGHT_SHOULDER  = 12
 RIGHT_ELBOW     = 14
 RIGHT_WRIST     = 16
-RIGHT_HIP       = 24
+# RIGHT_HIP       = 24
 
 
 connections = (
-    (LEFT_HIP, LEFT_SHOULDER),
+    # (LEFT_HIP, LEFT_SHOULDER),
     (LEFT_SHOULDER, LEFT_ELBOW),
     (LEFT_ELBOW, LEFT_WRIST),
-    (RIGHT_HIP, RIGHT_SHOULDER),
+    # (RIGHT_HIP, RIGHT_SHOULDER),
     (RIGHT_SHOULDER, RIGHT_ELBOW),
     (RIGHT_ELBOW, RIGHT_WRIST),
     (LEFT_SHOULDER, RIGHT_SHOULDER),
-    (LEFT_HIP, RIGHT_HIP),
+    # (LEFT_HIP, RIGHT_HIP),
 )
 
 
@@ -50,7 +50,7 @@ class MotionTracker:
         self._current_frame = None
         self._last_processed = None
         self._landmarks = None
-        self._accuracy = 1
+        self._accuracy = accuracy
         self._show_landmarks = False
         self._landmarks_color = landmarks_color
 
@@ -127,11 +127,11 @@ class MotionTracker:
             LEFT_SHOULDER:  None,
             LEFT_ELBOW:     None,
             LEFT_WRIST:     None,
-            LEFT_HIP:       None,
+            # LEFT_HIP:       None,
             RIGHT_SHOULDER: None,
             RIGHT_ELBOW:    None,
             RIGHT_WRIST:    None,
-            RIGHT_HIP:      None,
+            # RIGHT_HIP:      None,
         }
 
         results = self._mp_pose.process(frame)
