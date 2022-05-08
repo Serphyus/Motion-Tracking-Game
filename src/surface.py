@@ -77,6 +77,11 @@ class Surface:
         self._looped = value
 
 
+    def reset(self) -> None:
+        self._current_frame = 0
+        self._counter = 0
+
+
     def get_frame(self) -> pygame.Surface:
         """Returns the current frame of animation
 
