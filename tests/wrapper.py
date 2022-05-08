@@ -1,15 +1,42 @@
 import os
 import subprocess
-import logging
 from pathlib import Path
 from typing import Sequence
+from contextlib import suppress
 
 
-logging.basicConfig(
-    level="NOTSET",
-    format="%(asctime)s | %(levelname)-8s | %(message)s",
-    datefmt="[%H:%M:%S]",
-)
+class Loader:
+    def __init__(self, msg: str) -> None:
+        self._msg = msg
+        
+        self._symbols = "-\\|/"
+        self._current = 0
+    
+
+    def update(self) -> None:
+        symbol = self._symbols[self._current]
+        print("\r \033[33m[%s]\033[0m %s" % (symbol, self._msg), end="")
+        self._current = (self._current + 1) % (len(self._symbols) - 1)
+
+
+    def success(self) -> None:
+        print("\r \033[32m[+]\033[0m")
+
+
+    def warning(self) -> None:
+        print("\r \033[33m[!]\033[0m")
+
+    
+    def error(self) -> None:
+        print("\r \033[31m[!]\033[0m")
+
+
+    def __enter__(self) -> object:
+        return self
+    
+
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
+        pass
 
 
 def map_files(prefix: str) -> list:
@@ -31,7 +58,6 @@ def menu(title: str, options: Sequence[Path]) -> Sequence[Path]:
     for index, path in enumerate(options + ["Run all tests"]):
         print(" %i) %s" % (index+1, path))
 
-    choice = -1
     while True:
         user_input = input("\nchoice: ")
         
@@ -45,11 +71,11 @@ def menu(title: str, options: Sequence[Path]) -> Sequence[Path]:
         print("\x1b[2A\x1b[0J", end="")
 
 
-def run_test(script_path: Path, cwd: Path) -> subprocess.CompletedProcess:
+def run_test(script_path: Path, cwd: Path) -> subprocess.Popen:
     process_env = os.environ.copy()
     process_env["PYTHONPATH"] = str(cwd)
     
-    process = subprocess.run(
+    process = subprocess.Popen(
         "python %s %s" % (script_path, cwd),
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
@@ -78,14 +104,24 @@ def main(abs_path: Path):
             clear_screen()
             chosen_scripts = menu("Testing Scripts", test_scripts)
             
+            clear_screen()
+            print("\n Running Test Scripts")
+            print(" --------------------")
             for script in chosen_scripts:
-                logging.debug("Running Test -> %s" % script.name)
                 process = run_test(Path(abs_path, script), source_path)
-
-                if process.returncode != 0 or process.stderr != b"":
-                    print(process.stderr.decode())
-                    logging.error("errors occurred when running %s" % script.name)
-                    break
+                
+                with Loader("Running Test -> %s" % script.name) as load:
+                    while process.poll() is None:
+                        load.update()
+                        with suppress(subprocess.TimeoutExpired):
+                            process.wait(0.25)
+                
+                    if process.returncode != 0:
+                        load.error()
+                    elif process.stderr.read() != b"":
+                        load.warning()
+                    else:
+                        load.success()
             
             input("\n[press enter to return]")
         
