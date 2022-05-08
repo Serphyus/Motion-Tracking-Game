@@ -26,8 +26,8 @@ class Surface:
     def __init__(self,
             frames: Sequence[pygame.Surface],
             animated: bool,
-            speed: int = 5,
-            looped: bool = False,
+            speed: int = 15,
+            looped: bool = True,
         ) -> None:
         
         if len(frames) == 0:
@@ -43,13 +43,13 @@ class Surface:
         # since the counter is incremented before return the
         # counter must start at -1 to include the first frame.
         self._counter = -1
-        self._current = 0
+        self._current_frame = 0
         
         # count the available frames
         self._frame_count = len(self._frames)
 
         # Checks if it can be animated
-        if self._frame_count == 0:
+        if self._frame_count == 1:
             self._animated = False
 
 
@@ -60,9 +60,21 @@ class Surface:
 
     @animated.setter
     def animated(self, value: bool) -> None:
-        if not isinstance(value, (bool, int)):
+        if not isinstance(value, bool):
             raise TypeError("animated must be a bool")
         self._animated = value
+
+
+    @property
+    def loop(self) -> bool:
+        return self._looped
+    
+
+    @loop.setter
+    def loop(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError("animated must be a bool")
+        self._looped = value
 
 
     def get_frame(self) -> pygame.Surface:
@@ -77,14 +89,17 @@ class Surface:
         Returns:
             `pygame.Surface` : The surface of the current frame
         """
-        if self._animated:
+        if not self._animated:
             return self._frames[0]
 
         self._counter += 1
-        
-        # animated frame
         if self._counter >= self._speed:
-            self._current %= self._frame_count - 1
-            self._counter = 0
-
-        return self._frames[self._current]
+            if self._current_frame == self._frame_count - 1:
+                if self._looped:
+                    self._current_frame = 0
+                    self._counter = 0
+            else:
+                self._current_frame += 1
+                self._counter = 0
+        
+        return self._frames[self._current_frame]
