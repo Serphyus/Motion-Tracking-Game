@@ -14,8 +14,13 @@ class Loader:
     
 
     def update(self) -> None:
+        # update the loading symbol used and print it out
         symbol = self._symbols[self._current]
+        
+        # overwrite the previous loading symbol
         print("\r \033[33m[%s]\033[0m %s" % (symbol, self._msg), end="")
+        
+        # update the current loading symbol
         self._current = (self._current + 1) % (len(self._symbols) - 1)
 
 
@@ -28,7 +33,7 @@ class Loader:
 
     
     def error(self) -> None:
-        print("\r \033[31m[!]\033[0m")
+        print("\r \033[31m[-]\033[0m")
 
 
     def __enter__(self) -> object:
@@ -39,7 +44,9 @@ class Loader:
         pass
 
 
-def map_files(prefix: str) -> list:
+def map_files(prefix: Path) -> list:
+    # this will recursivly map all files available
+    # in the folder and subfolders of the prefix path
     paths = []
     for sub in os.listdir(prefix):
         curr_path = Path(prefix, sub)
@@ -68,13 +75,19 @@ def menu(title: str, options: Sequence[Path]) -> Sequence[Path]:
             elif choice == len(options)+1:
                 return options
         
+        # ansi escape code to move back 1 line and clear it
         print("\x1b[2A\x1b[0J", end="")
 
 
 def run_test(script_path: Path, cwd: Path) -> subprocess.Popen:
+    # copy the os environment and modify it
+    # so that it can import the source files
+    # using the PYTHONPATH env variable
     process_env = os.environ.copy()
     process_env["PYTHONPATH"] = str(cwd)
     
+    # create a subprocess with the modified
+    # environment and piped stdout and stderr
     process = subprocess.Popen(
         "python %s %s" % (script_path, cwd),
         stdin=subprocess.DEVNULL,
@@ -88,12 +101,15 @@ def run_test(script_path: Path, cwd: Path) -> subprocess.Popen:
 
 
 def clear_screen() -> None:
+    # ansi escape key for clearing the entire terminal
     print("\x1b[H\x1b[2J\x1b[3J", end="")
 
 
 def main(abs_path: Path):
+    # set path to source code files to be used for imports
     source_path = Path(abs_path.parent, "src")
 
+    # list all test scripts
     test_scripts = []
     for path in map_files(Path(abs_path, "scripts")):
         test_scripts.append(path.relative_to(abs_path))
@@ -101,15 +117,20 @@ def main(abs_path: Path):
     looped = True
     while looped:
         try:
+            # prompt the user with a menu of choices
             clear_screen()
             chosen_scripts = menu("Testing Scripts", test_scripts)
-            
+
+            # loop through all test scripts and run them            
             clear_screen()
             print("\n Running Test Scripts")
             print(" --------------------")
             for script in chosen_scripts:
                 process = run_test(Path(abs_path, script), source_path)
                 
+                # use the Loader class to create a loading symbol while
+                # the test is running and check the returncode and error
+                # output for any errors
                 with Loader("Running Test -> %s" % script.name) as load:
                     while process.poll() is None:
                         load.update()
